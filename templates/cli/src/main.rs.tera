@@ -1,0 +1,77 @@
+use anyhow::{Context, Result};
+use clap::{Parser, Subcommand};
+use google_storage{{ api.version }}::prelude::*;
+use std::path::PathBuf;
+
+#[derive(Parser)]
+#[command(author, version, about)]
+struct Cli {
+    /// Configuration directory
+    #[arg(long, default_value = "~/.google-service-cli")]
+    config_dir: PathBuf,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    {% if api.methods %}
+    {% for method_name, method in api.methods %}
+    /// {{ method.description | default(value="") }}
+    {{ method_name | to_pascal_case }} {
+        {% if method.parameters %}
+        {% for param_name, param in method.parameters %}
+        {% if param.description %}
+        /// {{ param.description }}
+        {% endif %}
+        #[arg(long)]
+        {{ param_name | to_snake_case }}: {{ param.type | to_rust_type }},
+        {% endfor %}
+        {% endif %}
+    },
+    {% endfor %}
+    {% endif %}
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    // Set up authentication
+    let secret = yup_oauth2::read_application_secret(cli.config_dir.join("client_secret.json"))
+        .await
+        .context("Failed to read client secret")?;
+
+    let auth = yup_oauth2::InstalledFlowAuthenticator::builder(secret)
+        .persist_tokens_to_disk(cli.config_dir.join("tokens.json"))
+        .build()
+        .await?;
+
+    let client = StorageClient::new(auth);
+
+    match cli.command {
+        {% if api.methods %}
+        {% for method_name, method in api.methods %}
+        Commands::{{ method_name | to_pascal_case }} {
+            {% if method.parameters %}
+            {% for param_name, param in method.parameters %}
+            {{ param_name | to_snake_case }},
+            {% endfor %}
+            {% endif %}
+        } => {
+            let result = client.{{ method_name | to_snake_case }}(
+                {% if method.parameters %}
+                {% for param_name, param in method.parameters %}
+                {{ param_name | to_snake_case }},
+                {% endfor %}
+                {% endif %}
+            ).await?;
+            println!("{:#?}", result);
+        },
+        {% endfor %}
+        {% endif %}
+    }
+
+    Ok(())
+}

@@ -1,0 +1,40 @@
+use serde::{Deserialize, Serialize};
+
+{% if api.schemas %}
+{% for schema_name, schema in api.schemas %}
+{% if schema.description %}
+/// {{ schema.description | replace(from="—", to="-") | replace(from="- ", to="") | trim }}
+{% endif %}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct {{ schema_name | to_pascal_case }} {
+    {% if schema.properties %}
+    {% for prop_name, prop in schema.properties %}
+    {% if prop.description %}
+    /// {{ prop.description | replace(from="—", to="-") | replace(from="- ", to="") | trim }}
+    {% endif %}
+    #[serde(rename = "{{ prop_name }}", skip_serializing_if = "Option::is_none")]
+    pub {% if prop_name == "type" %}r#type{% else %}{{ prop_name | replace(from=".", to="_") | replace(from="-", to="_") | to_snake_case }}{% endif %}: Option<String>,
+    {% endfor %}
+    {% endif %}
+}
+
+impl {{ schema_name | to_pascal_case }} {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for {{ schema_name | to_pascal_case }} {
+    fn default() -> Self {
+        Self {
+            {% if schema.properties %}
+            {% for prop_name, prop in schema.properties %}
+            {% if prop_name == "type" %}r#type{% else %}{{ prop_name | replace(from=".", to="_") | replace(from="-", to="_") | to_snake_case }}{% endif %}: None,
+            {% endfor %}
+            {% endif %}
+        }
+    }
+}
+
+{% endfor %}
+{% endif %}

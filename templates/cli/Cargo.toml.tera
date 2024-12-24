@@ -1,0 +1,20 @@
+[package]
+name = "google-storage{{ api.version }}-cli"
+version = "{{ api.revision }}"
+edition = "2021"
+description = "Command line interface for {{ api.description }}"
+repository = "https://github.com/terekete/storage_api_test"
+license = "MIT"
+keywords = ["google", "storage", "api", "cloud", "cli"]
+
+[[bin]]
+name = "storage{{ api.version }}"
+path = "src/main.rs"
+
+[dependencies]
+google-storage{{ api.version }} = { path = "../storage{{ api.version }}" }
+clap = { version = "4.3", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+serde_json = "1.0"
+yup-oauth2 = "8.1"

@@ -1,0 +1,30 @@
+//! Generated code for {{ api.name }} API version {{ api.version }}
+//! Revision: {{ api.revision }}
+
+{% if api.description %}
+//! {{ api.description }}
+{% endif %}
+
+pub mod types;
+pub mod client;
+
+pub use client::StorageClient;
+pub use types::*;
+
+pub const API_VERSION: &str = "{{ api.version }}";
+{% if api.base_url %}
+pub const BASE_URL: &str = "{{ api.base_url }}";
+{% else %}
+pub const BASE_URL: &str = "https://storage.googleapis.com/storage/v1";
+{% endif %}
+{% if api.root_url %}
+pub const ROOT_URL: &str = "{{ api.root_url }}";
+{% endif %}
+{% if api.service_path %}
+pub const SERVICE_PATH: &str = "{{ api.service_path }}";
+{% endif %}
+
+pub mod prelude {
+    pub use super::client::StorageClient;
+    pub use super::types::*;
+}
