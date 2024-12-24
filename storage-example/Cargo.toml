@@ -7,4 +7,4 @@ edition = "2021"
 google-storagev1 = { path = "../generated/storagev1" }
 tokio = { version = "1.0", features = ["full"] }
 anyhow = "1.0"
-yup-oauth2 = "8.1"
+yup-oauth2 = "8.3"

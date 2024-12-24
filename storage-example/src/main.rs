@@ -1,57 +1,35 @@
 use anyhow::Result;
-use google_storagev1::StorageClient;
-use yup_oauth2::{InstalledFlowAuthenticator, InstalledFlowReturnMethod};
+use yup_oauth2::authenticator::Authenticator;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Set up authentication
     let secret = yup_oauth2::read_application_secret("client_secret.json").await?;
-
-    let auth = InstalledFlowAuthenticator::builder(secret, InstalledFlowReturnMethod::HTTPRedirect)
-        .persist_tokens_to_disk("storage_tokens.json")
+    let auth = yup_oauth2::InstalledFlowAuthenticator::builder(secret)
+        .persist_tokens_to_disk("tokens.json")
         .build()
         .await?;
 
-    // Create storage client
+    // Create the client
     let client = StorageClient::new(auth);
 
-    // List buckets in your project
-    let project_id = "your-project-id"; // Replace with your GCP project ID
+    // List buckets in a project
+    let buckets = client.buckets_list("your-project-id").await?;
+    println!("Buckets: {:?}", buckets);
 
-    println!("Listing buckets in project {}", project_id);
+    // Get a specific bucket
+    let bucket = client.bucket_get("your-bucket-name").await?;
+    println!("Bucket: {:?}", bucket);
 
-    let buckets = client.buckets_list(project_id).await?;
+    // List objects in a bucket
+    let objects = client.objects_list("your-bucket-name").await?;
+    println!("Objects: {:?}", objects);
 
-    // Handle optional values
-    if let Some(items) = buckets.items {
-        for bucket in items {
-            println!("Bucket: {}", bucket.name.unwrap_or_default());
-            if let Some(location) = bucket.location {
-                println!("  Location: {}", location);
-            }
-            if let Some(storage_class) = bucket.storage_class {
-                println!("  Storage Class: {}", storage_class);
-            }
-
-            // List objects in this bucket
-            if let Some(bucket_name) = &bucket.name {
-                println!("\n  Objects in bucket {}:", bucket_name);
-                match client.objects_list(bucket_name).await {
-                    Ok(objects) => {
-                        if let Some(items) = objects.items {
-                            for object in items {
-                                println!("    - {}", object.name.unwrap_or_default());
-                            }
-                        }
-                    }
-                    Err(e) => println!("    Error listing objects: {}", e),
-                }
-            }
-            println!();
-        }
-    } else {
-        println!("No buckets found");
-    }
+    // Get a specific object
+    let object = client
+        .object_get("your-bucket-name", "your-object-name")
+        .await?;
+    println!("Object: {:?}", object);
 
     Ok(())
 }

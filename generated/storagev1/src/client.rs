@@ -1,18 +1,28 @@
 use std::sync::Arc;
-use anyhow::Result;
-use hyper::{Body, Client, Request, Method};
+use hyper::{Body, Client, Request, Method, Uri, service::Service};
 use hyper_rustls::HttpsConnectorBuilder;
 use serde::de::DeserializeOwned;
 use yup_oauth2::authenticator::Authenticator;
+use anyhow::Result;
 
-use crate::types::*;
-
-pub struct StorageClient<S> {
+pub struct StorageClient<S>
+where
+    S: Service<Uri> + Clone + Send + Sync + 'static,
+    S::Response: hyper::client::connect::Connection + Send + 'static,
+    S::Future: Send + 'static,
+    S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
     client: Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
     auth: Arc<Authenticator<S>>,
 }
 
-impl<S> StorageClient<S> {
+impl<S> StorageClient<S>
+where
+    S: Service<Uri> + Clone + Send + Sync + 'static,
+    S::Response: hyper::client::connect::Connection + Send + 'static,
+    S::Future: Send + 'static,
+    S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
     pub fn new(auth: Authenticator<S>) -> Self {
         let https = HttpsConnectorBuilder::new()
             .with_native_roots()
@@ -86,3 +96,9 @@ impl<S> StorageClient<S> {
         self.request(Method::GET, url).await
     }
 }
+
+// Type definitions (assuming these are defined elsewhere in your codebase)
+pub struct Buckets;
+pub struct Bucket;
+pub struct Objects;
+pub struct Object;
